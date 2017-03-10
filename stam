@@ -1,0 +1,97 @@
+#!/usr/bin/env python
+
+import yaml
+import os
+import sys
+import uuid
+import subprocess
+import glob
+from clint.textui import puts, indent, colored
+
+class Stam(object):
+
+    def __init__(self):
+        self.__cwd = os.getcwd()
+
+    def run(self):
+        self.cleanup()
+
+        script_to_run = self.get_selected_script(sys.argv)
+
+        if script_to_run is None:
+            self.print_usage()
+            exit(0)
+
+        self.run_script(script_to_run, sys.argv)
+
+        self.cleanup()
+
+    def cleanup(self):
+        for f in glob.glob(self.__cwd + '/.stam.*'):
+            os.remove(f)
+
+    def run_script(self, script_to_run, args):
+        args = args[2:]
+        script_file_path = self.get_script_file(script_to_run)
+
+        pipes = subprocess.Popen([script_file_path] + args,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        std_out, std_err = pipes.communicate()
+
+        puts(colored.green(std_out))
+
+        if pipes.returncode != 0:
+            puts(colored.red(std_err.replace(script_file_path + ': ', '')))
+            exit(pipes.returncode)
+
+        elif len(std_err):
+            puts(colored.red(std_err))
+
+    def get_script_file(self, script_to_run):
+        args = sys.argv[2:]
+        script_file_path = self.__cwd + '/.stam.' + str(uuid.uuid1())
+        script_file = open(script_file_path, 'w')
+        script_file.write(script_to_run)
+        script_file.close()
+
+        return script_file_path
+
+    def print_usage(self):
+        commands = self.get_commands()
+
+        puts(colored.cyan("\n   _____ _______       __  __\n  / ____|__ " +
+        "  __|/\   |  \/  |\n | (___    | |  /  \  | \  / |\n" +
+        "  \___ \   | | / /\ \ | |\/| |\n  ____) |  | |/ ____ \| |  | |\n" +
+        " |_____/   |_/_/    \_\_|  |_|\n        "))
+
+        puts(colored.cyan('Usage: stam [command to run]'))
+        puts(colored.cyan('where [command to run] is one of'))
+        for command in commands:
+            with indent(4):
+                puts(command)
+        puts(colored.cyan(
+            'As defined in the file `stam.yml` in this directory'))
+        puts('')
+
+    def get_selected_script(self, args):
+        try:
+            return self.get_commands()[args[1]]
+        except (IndexError, KeyError) as exc:
+            return None
+
+    def get_commands(self):
+        with open(self.__cwd + '/stam.yml', 'r') as stream:
+            try:
+                return yaml.load(stream)['stam']
+            except yaml.YAMLError as exc:
+                self.handle_error('Unable to find a stam.yml file')
+
+    def handle_error(self, msg):
+        print msg
+        self.cleanup()
+        exit(1)
+
+
+if __name__ == '__main__':
+    Stam().run()
