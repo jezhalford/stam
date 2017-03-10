@@ -1,0 +1,20 @@
+stam:
+  'has-args': |
+    #!/bin/bash
+    echo "One:"
+    echo $1
+    echo "Two:"
+    echo $2
+
+  who: |
+    #!/bin/bash
+    whoami
+  error: |
+    #!/bin/bash
+    thiswillerror
+
+  mixed: |
+    #!/bin/bash
+    >&2 echo "some stderr output"
+    echo "some stdout output"
+    exit 0
