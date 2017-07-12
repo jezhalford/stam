@@ -18,3 +18,10 @@ stam:
     >&2 echo "some stderr output"
     echo "some stdout output"
     exit 0
+
+  pipes: |
+    #!/usr/bin/env php
+    <?php
+    while($f = fgets(STDIN)){
+      echo "line: $f";
+    }
